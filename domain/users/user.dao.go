@@ -11,6 +11,7 @@ import (
 const (
 	queryInsertUser = `INSERT INTO users(first_name, last_name, email, date_created) VALUES ($1,$2,$3,$4) RETURNING id;`
 	queryGetUser    = `SELECT id, first_name, last_name, email, date_created FROM users WHERE id=$1;`
+	queryUpdateUser = `UPDATE users SET first_name=$1, last_name=$2, email=$3 WHERE id=$4;`
 )
 
 func (user *User) Get() *errors.Error {
@@ -37,5 +38,15 @@ func (user *User) Save() *errors.Error {
 	}
 
 	user.Id = id
+	return nil
+}
+
+func (user *User) Update() *errors.Error {
+
+	err := users_db.Client.QueryRow(queryUpdateUser, user.FirstName, user.LastName, user.Email, user.Id).Scan()
+	if err != nil && !strings.Contains(err.Error(), "no rows in result set") {
+		return errors.NewInternalServerError(fmt.Sprintf("error when trying to update an user: %s", err.Error()))
+	}
+
 	return nil
 }

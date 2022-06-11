@@ -24,3 +24,24 @@ func CreateUser(user users.User) (*users.User, *errors.Error) {
 
 	return &user, nil
 }
+
+func UpdateUser(user users.User) (*users.User, *errors.Error) {
+	current, err := GetUser(user.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	current.FirstName = user.FirstName
+	current.LastName = user.LastName
+	current.Email = user.Email
+
+	if err := current.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := current.Update(); err != nil {
+		return nil, err
+	}
+
+	return current, nil
+}
