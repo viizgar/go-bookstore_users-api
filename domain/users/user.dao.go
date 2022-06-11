@@ -3,8 +3,12 @@ package users
 import (
 	"fmt"
 
-	"github.com/viizgar/go-bookstore_users-api/utils/date"
+	"github.com/viizgar/go-bookstore_users-api/datasources/db/users_db"
 	"github.com/viizgar/go-bookstore_users-api/utils/errors"
+)
+
+const (
+	queryInsertUser = `INSERT INTO users(first_name, last_name, email, date_created) VALUES ($1,$2,$3,$4) RETURNING id;`
 )
 
 var (
@@ -27,16 +31,13 @@ func (user *User) Get() *errors.Error {
 }
 
 func (user *User) Save() *errors.Error {
-	current := usersDB[user.Id]
-	if current != nil {
-		if current.Email == user.Email {
-			return errors.NewBadRequestError(fmt.Sprintf("email %s already registered", user.Email))
-		}
-		return errors.NewBadRequestError(fmt.Sprintf("user %d already exists", user.Id))
+
+	var id int64
+	err := users_db.Client.QueryRow(queryInsertUser, user.FirstName, user.LastName, user.Email, user.DateCreated).Scan(&id)
+	if err != nil {
+		return errors.NewInternalServerError(fmt.Sprintf("error when trying to save an user: %s", err.Error()))
 	}
 
-	user.DateCreated = date.GetNowString()
-
-	usersDB[user.Id] = user
+	user.Id = id
 	return nil
 }
