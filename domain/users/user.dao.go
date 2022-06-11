@@ -2,6 +2,7 @@ package users
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/viizgar/go-bookstore_users-api/datasources/db/users_db"
 	"github.com/viizgar/go-bookstore_users-api/utils/errors"
@@ -9,23 +10,20 @@ import (
 
 const (
 	queryInsertUser = `INSERT INTO users(first_name, last_name, email, date_created) VALUES ($1,$2,$3,$4) RETURNING id;`
-)
-
-var (
-	usersDB = make(map[int64]*User)
+	queryGetUser    = `SELECT id, first_name, last_name, email, date_created FROM users WHERE id=$1;`
 )
 
 func (user *User) Get() *errors.Error {
-	result := usersDB[user.Id]
-	if result == nil {
-		return errors.NewNotFoundError(fmt.Sprintf("user %d not found", user.Id))
-	}
 
-	user.Id = result.Id
-	user.FirstName = result.FirstName
-	user.LastName = result.LastName
-	user.Email = result.Email
-	user.DateCreated = result.DateCreated
+	err := users_db.Client.QueryRow(queryGetUser, user.Id).Scan(&user.Id, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return errors.NewNotFoundError(fmt.Sprintf("user %d not found", user.Id))
+		}
+
+		return errors.NewInternalServerError(fmt.Sprintf("error when trying to get an user: %s", err.Error()))
+	}
 
 	return nil
 }
